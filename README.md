@@ -44,7 +44,7 @@ Bộ quy tắc nghiệp vụ trong nghiên cứu là **rule catalog mô phỏng*
 
 ## File chính
 
-- `ACSIncome_BusinessRule_V3_1_FIXED.ipynb`: notebook thực nghiệm phiên bản V3.1.
+- `ACSIncome_BusinessRule.ipynb`: notebook thực nghiệm.
 
 ## Công nghệ sử dụng
 
