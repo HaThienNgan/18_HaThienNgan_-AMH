@@ -1,66 +1,79 @@
 # ACSIncome Business Rule Gap
 
-## Đánh giá khoảng cách giữa khai phá quan hệ phụ thuộc từ dữ liệu và quy tắc nghiệp vụ
+## Khung đánh giá khoảng cách giữa dependency mining và quy tắc nghiệp vụ
 
-Dự án nghiên cứu đánh giá khoảng cách giữa các quan hệ phụ thuộc được tự động khai phá từ dữ liệu và các quy tắc nghiệp vụ được xác định dựa trên tri thức chuyên môn trên bộ dữ liệu **ACSIncome**.
+Dự án nghiên cứu cách kết hợp khai phá quan hệ phụ thuộc từ dữ liệu với tri thức chuyên gia trong quản trị chất lượng dữ liệu. Bộ dữ liệu thực nghiệm là **ACSIncome**; đầu ra gồm controlled benchmark, danh sách dependency ứng viên, row-level validation và cảnh báo dependency drift.
 
-Notebook sử dụng quy trình thực nghiệm gồm:
+> **Giới hạn quan trọng:** rule catalog trong controlled benchmark là bộ quy tắc mô phỏng do người nghiên cứu thiết kế. Đây không phải rule chính thức của ACS và kết quả tìm lại rule không được diễn giải thành bằng chứng rằng máy đã tự khám phá tri thức nghiệp vụ thực tế.
 
-* Tách tập huấn luyện và tập kiểm tra theo `state × income_label`.
-* Chỉ khai phá các quan hệ phụ thuộc trên tập huấn luyện nhằm hạn chế rò rỉ dữ liệu.
-* Xây dựng bộ kiểm tra từ các mapping học được trên tập huấn luyện.
-* Tiêm lỗi ở cấp dòng dữ liệu để đánh giá khả năng phát hiện vi phạm.
-* Thực hiện kiểm thử với nhiều random seed và báo cáo kết quả trung bình cùng độ lệch chuẩn.
-* Sử dụng bootstrap cho chỉ số Dependency Distribution Shift (DDS).
-* Thực hiện đánh giá leave-one-state-out để kiểm tra khả năng khái quát giữa các bang.
+## Phiên bản V4
 
-## Mục tiêu nghiên cứu
+Notebook mới: [`ACSIncome_BusinessRule_V4.ipynb`](ACSIncome_BusinessRule_V4.ipynb)
 
-Nghiên cứu hướng đến việc làm rõ rằng một quan hệ phụ thuộc mạnh về mặt thống kê không nhất thiết đồng nghĩa với một quy tắc nghiệp vụ hợp lệ.
+V4 tách hai tuyến bằng chứng:
 
-Ngược lại, một số quy tắc nghiệp vụ quan trọng có thể được hình thành từ codebook, metadata hoặc tri thức chuyên gia và không thể được phát hiện chỉ bằng phương pháp khai phá dữ liệu.
+1. **Controlled benchmark:** đo khả năng tìm lại rule đã biết và phát hiện lỗi được tiêm có kiểm soát.
+2. **Raw-variable candidate discovery:** tìm dependency ổn định giữa các biến ACS gốc bằng bootstrap stability selection, permutation test và FDR; mọi kết quả chỉ là ứng viên chờ chuyên gia thẩm định.
 
-Dự án phân biệt hai nhóm quy tắc:
+Các sửa đổi chính:
 
-1. **Data-driven dependencies:** các quan hệ được máy tự động phát hiện từ dữ liệu.
-2. **Domain business rules:** các quy tắc kiểm tra được xây dựng từ codebook và logic nghiệp vụ mô phỏng.
+- sửa Theil’s U về cùng đơn vị log, nên quan hệ hoàn hảo đạt 1 thay vì khoảng 0,693;
+- chuẩn hóa QStrength về [0,1];
+- DDS chỉ tính ngoài đường chéo và so sánh cùng vị trí dòng;
+- leave-one-state-out tự loại `state` khỏi ma trận dependency;
+- thêm kiểm soát cardinality/support;
+- thêm permutation test và Benjamini–Hochberg FDR;
+- thêm negative control để phát hiện lập luận vòng tròn;
+- tách mã nguồn có thể kiểm thử khỏi notebook.
 
-## Phương pháp đánh giá
+Thiết kế và cách diễn giải chi tiết nằm trong [`METHODOLOGY_V4.md`](METHODOLOGY_V4.md).
 
-Các phương pháp và chỉ số chính gồm:
+## Cấu trúc repository
 
-* Exact Functional Dependency
-* QStrength
-* Theil’s U
-* Mutual Information
-* Cramér’s V
-* Precision@K
-* Recall@K
-* Business Rule Recovery
-* Non-Prescribed Dependency Rate
-* Dependency Distribution Shift (DDS)
+```text
+.
+├── ACSIncome_BusinessRule_V4.ipynb      # notebook thực nghiệm mới
+├── CĐPTDL_ACSIncome-BusinessRule.ipynb  # notebook V3.1 giữ để đối chiếu
+├── METHODOLOGY_V4.md                    # thiết kế nghiên cứu và threats to validity
+├── pyproject.toml                       # cấu hình package và dependency
+├── requirements.txt
+├── src/acs_rule_gap/
+│   ├── data.py                          # sampling, split, biến benchmark
+│   ├── metrics.py                       # FD, QStrength, Theil's U, NMI, Cramér's V
+│   ├── drift.py                         # paired DDS và group-safe LOO
+│   └── stability.py                     # stability selection, permutation, FDR
+└── tests/                               # kiểm thử hồi quy phương pháp
+```
 
-## Lưu ý về phạm vi
+## Chạy notebook
 
-Bộ quy tắc nghiệp vụ trong nghiên cứu là **rule catalog mô phỏng**, được sử dụng như một benchmark có kiểm soát để đánh giá mức độ phù hợp giữa dependency mining và tri thức nghiệp vụ.
+Mở `ACSIncome_BusinessRule_V4.ipynb` bằng Google Colab và chạy từ đầu. Notebook tự clone repository khi không tìm thấy thư mục `src`.
 
-Đây không phải là bộ quy tắc chính thức của ACS và nghiên cứu không nhằm thay thế vai trò của chuyên gia nghiệp vụ.
+- `QUICK_MODE = True`: kiểm tra pipeline với số vòng lặp nhỏ.
+- `QUICK_MODE = False`: cấu hình dùng để tạo kết quả báo cáo cuối cùng.
 
-## File chính
+## Chạy kiểm thử
 
-* `CĐPTDL_ACSIncome-BusinessRule.ipynb`: notebook thực nghiệm.
+```bash
+python -m pip install -e '.[dev]'
+python -m pytest
+```
 
-## Công nghệ sử dụng
+Các test khóa những thuộc tính quan trọng như `Theil’s U = 1` cho dependency hoàn hảo, DDS bằng 0 trên hai ma trận giống nhau và việc không đưa biến nhóm vào state-level LOO.
 
-* Python
-* Jupyter Notebook / Google Colab
-* pandas
-* NumPy
-* SciPy
-* scikit-learn
-* Matplotlib
-* Seaborn
+## Hướng đóng góp cho đề tài ThS HTTT
 
-## Mô tả ngắn
+Đóng góp phù hợp nhất là một khung hỗ trợ quản trị rule theo vòng đời:
 
-Notebook nghiên cứu đánh giá khoảng cách giữa các quan hệ phụ thuộc được khai phá từ dữ liệu và các quy tắc nghiệp vụ theo chuyên môn trên bộ dữ liệu ACSIncome, sử dụng phương pháp tách tập huấn luyện–kiểm tra, kiểm thử với nhiều seed ngẫu nhiên, bootstrap DDS và đánh giá leave-one-state-out.
+```mermaid
+flowchart TD
+    A[Dependency discovery trên train] --> B[Stability và permutation screening]
+    B --> C[Chuyên gia thẩm định]
+    C --> D[Rule catalog có phiên bản]
+    D --> E[Row-level validation]
+    D --> F[Dependency drift monitoring]
+    E --> G[Audit trail]
+    F --> G
+```
+
+Khung này phân biệt rõ điều máy phát hiện, điều chuyên gia phê duyệt và điều hệ thống dùng để kiểm soát dữ liệu.
